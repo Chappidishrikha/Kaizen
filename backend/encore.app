@@ -1,6 +1,11 @@
+
 {
-	// The app is not currently linked to the encore.dev platform.
-	// Use "encore app link" to link it.
+  // The app is linked through Encore Cloud.
   "id": "",
-  "lang": "typescript"
+  "lang": "typescript",
+  "global_cors": {
+    "allow_origins_with_credentials": [
+      "https://kaizen-by-shrikha-7algump8m-kaizen-8e6c.vercel.app"
+    ]
+  }
 }
