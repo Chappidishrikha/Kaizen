@@ -221,3 +221,54 @@ export const me = api(
     };
   }
 );
+
+interface ResetAdminPasswordRequest {
+  setupKey: string;
+  email: string;
+  password: string;
+}
+
+export const resetAdminPassword = api(
+  { expose: true, method: "POST", path: "/auth/reset-admin-password" },
+  async (req: ResetAdminPasswordRequest) => {
+    if (!req.setupKey || req.setupKey !== adminSetupKey()) {
+      throw APIError.unauthenticated("Invalid setup key");
+    }
+
+    const email = req.email?.trim().toLowerCase();
+
+    if (!email || !req.password) {
+      throw APIError.invalidArgument("Email and password are required");
+    }
+
+    if (
+      req.password.length < 8 ||
+      !/[A-Z]/.test(req.password) ||
+      !/[a-z]/.test(req.password) ||
+      !/[0-9]/.test(req.password)
+    ) {
+      throw APIError.invalidArgument("Password must contain at least 8 characters, one uppercase letter, one lowercase letter, and one number");
+    }
+
+    const passwordHash = await bcrypt.hash(req.password, 12);
+
+    const updated = await db.queryRow<{ id: string; email: string }>`
+      UPDATE users
+      SET password_hash = ${passwordHash},
+          updated_at = NOW()
+      WHERE email = ${email}
+        AND role = 'ADMIN'
+        AND is_active = TRUE
+      RETURNING id, email
+    `;
+
+    if (!updated) {
+      throw APIError.notFound("Active administrator account not found");
+    }
+
+    return {
+      message: "Administrator password updated successfully",
+      email: updated.email,
+    };
+  }
+);
